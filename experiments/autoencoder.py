@@ -66,12 +66,7 @@ class AutoencoderExperiment:
         with torch.no_grad():
             for x, y in loader:
                 # remember using to(self.device) method for both input and output
-
-
-
-
-
-
+                constructed_y = self.model(x)
 
 
 
