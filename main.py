@@ -1,12 +1,15 @@
 import os
 import logging
-import torch
 from parse_args import parse_arguments
 from load_data import build_splits
-from models import *
+from experiments.autoencoder import AutoencoderExperiment
+from experiments.gan import GANExperiment
 
 
 def main(opt):
+    experiment = AutoencoderExperiment()
+    # experiment = GANExperiment()
+    
     train_loader, validation_loader, test_loader = build_splits(opt)
 
     if not opt['test']: # Skip training if '--test' flag is set

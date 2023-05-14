@@ -1,7 +1,7 @@
 import torch
 from models import GAN
 
-class Experiment: 
+class GANExperiment: 
     
     def __init__(self, opt):
         # Utils
@@ -57,7 +57,7 @@ class Experiment:
         
         return loss.item()
 
-    def validate(self, loader):
+    def validate(self, loader, threshold):
         self.model.eval()
         accuracy = 0
         loss = 0
