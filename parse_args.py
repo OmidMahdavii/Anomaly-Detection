@@ -4,6 +4,7 @@ import torch
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('--experiment', type=str, default='gan', choices=['gan', 'autoencoder'])
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate.')
     parser.add_argument('--max_iterations', type=int, default=5000, help='Number of training iterations.')
     parser.add_argument('--batch_size', type=int, default=32)
@@ -21,6 +22,6 @@ def parse_arguments():
     if not opt['cpu']:
         assert torch.cuda.is_available(), 'You need a CUDA capable device in order to run this experiment. See `--cpu` flag.'
 
-    opt['output_path'] = f'{opt["output_path"]}/record'
+    opt['output_path'] = f'{opt["output_path"]}/record/{opt["experiment"]}'
 
     return opt

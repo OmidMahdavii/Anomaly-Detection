@@ -19,11 +19,11 @@ class AutoencoderExperiment:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
         self.criterion = [...]
 
-    def save_checkpoint(self, path, iteration, total_train_loss):
+    def save_checkpoint(self, path, iteration, train_loss):
         checkpoint = {}
 
         checkpoint['iteration'] = iteration
-        checkpoint['total_train_loss'] = total_train_loss
+        checkpoint['train_loss'] = train_loss
         checkpoint['model'] = self.model.state_dict()
         checkpoint['optimizer'] = self.optimizer.state_dict()
 
@@ -33,13 +33,14 @@ class AutoencoderExperiment:
         checkpoint = torch.load(path)
 
         iteration = checkpoint['iteration']
-        total_train_loss = checkpoint['total_train_loss']
+        train_loss = checkpoint['train_loss']
         self.model.load_state_dict(checkpoint['model'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
 
-        return iteration, total_train_loss
+        return iteration, train_loss
 
     def train_iteration(self, data):
+        # The regularization weight is saved in the self.opt['reg_weight'] variable
         # remember using to(self.device) method for input
 
 
@@ -57,7 +58,8 @@ class AutoencoderExperiment:
         
         return loss.item()
 
-    def validate(self, loader, threshold):
+    def validate(self, loader):
+        # The threshold is saved in the self.opt['threshold'] variable
         self.model.eval()
         accuracy = 0
         loss = 0
