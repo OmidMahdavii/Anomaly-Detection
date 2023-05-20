@@ -1,5 +1,6 @@
 import torch
 from models import GAN
+from sklearn import metrics
 from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix, RocCurveDisplay
 
 class GANExperiment: 
@@ -65,7 +66,9 @@ class GANExperiment:
         predicted_ae = list()
         target = list()
         loss_scores = list()
-        predicted_discr = list()
+        predicted_discr_with_recinstructed_input = list()
+        predicted_discr_with_real_input = list()
+
 
 
         with torch.no_grad():
@@ -75,7 +78,7 @@ class GANExperiment:
                 x = x.to(self.device)
                 y = y.to(self.device)
 
-                logits,  discriminator_y = self.model(x)
+                logits,  discriminator_y, discriminator_x= self.model(x)
 
                 loss = torch.mean(self.criterion(x, logits), dim=2)
 
@@ -83,7 +86,8 @@ class GANExperiment:
 
                 loss_scores.append(loss.ravel())
                 predicted_ae.append(predicted_y)
-                predicted_discr.append(discriminator_y.ravel())
+                predicted_discr_with_recinstructed_input.append(discriminator_y.ravel())
+                predicted_discr_with_real_input.append(discriminator_x.ravel())
                 target.append(y)
 
                 
@@ -95,20 +99,95 @@ class GANExperiment:
         target = torch.cat(target, dim=0)
         predicted_ae = torch.cat(predicted_ae, dim=0)
         loss_scores = torch.cat(loss_scores, dim=0)
-        predicted_discr = torch.cat(predicted_discr, dim=0)
+        predicted_discr_with_recinstructed_input = torch.cat(predicted_discr_with_recinstructed_input, dim=0)
+        predicted_discr_with_real_input = torch.cat(predicted_discr_with_real_input, dim=0)
 
-        RocCurveDisplay.from_predictions(target, loss_scores, name="ROC curve", color="darkorange")
+        # RocCurveDisplay.from_predictions(target, loss_scores, name="ROC curve", color="darkorange")
+
+        fpr, tpr, thresholds = metrics.roc_curve(target, loss_scores.ravel(), pos_label=1)
+        roc_auc = metrics.auc(fpr, tpr)
+
 
         confusion_matrix_ae = confusion_matrix(target, predicted_ae)
-        confusion_matrix_discr = confusion_matrix(target, predicted_discr)
+        confusion_matrix_discr = confusion_matrix(target, predicted_discr_with_recinstructed_input)
 
         recall_ae = recall_score(target, predicted_ae)
         precision_ae = precision_score(target, predicted_ae)
         f1_ae = f1_score(target, predicted_ae)
 
-        recall_discr = recall_score(target, predicted_discr)
-        precision_discr = precision_score(target, predicted_discr)
-        f1_discr = f1_score(target, predicted_discr)
+        recall_discr_with_constructed_input = recall_score(target, predicted_discr_with_recinstructed_input)
+        precision_discr_with_constructed_input = precision_score(target, predicted_discr_with_recinstructed_input)
+        f1_discr_with_constructed_input = f1_score(target, predicted_discr_with_recinstructed_input)
+
+        recall_discr = recall_score(target, predicted_discr_with_real_input)
+        precision_discr = precision_score(target, predicted_discr_with_real_input)
+        f1_discr = f1_score(target, predicted_discr_with_real_input)
+
+        return accuracy, loss
+
+    def evaluate(self, loader):
+
+        # The threshold is saved in the self.opt['threshold'] variable
+        self.model.eval()
+
+        accuracy = 0
+        loss = 0
+
+        predicted_ae = list()
+        target = list()
+        loss_scores = list()
+        predicted_discr_with_recinstructed_input = list()
+        predicted_discr_with_real_input = list()
+
+        with torch.no_grad():
+            for x, y in loader:
+                # remember using to(self.device) method for both input and output
+
+                x = x.to(self.device)
+                y = y.to(self.device)
+
+                logits, discriminator_y, discriminator_x = self.model(x)
+
+                loss = torch.mean(self.criterion(x, logits), dim=2)
+
+                predicted_y = loss > self.opt['threshold'].type(torch.int32).ravel()
+
+                loss_scores.append(loss.ravel())
+                predicted_ae.append(predicted_y)
+                predicted_discr_with_recinstructed_input.append(discriminator_y.ravel())
+                predicted_discr_with_real_input.append(discriminator_x.ravel())
+                target.append(y)
+
+                # pred = [...]
+                # accuracy += (pred == y).sum().item()
+
+        self.model.train()
+
+        target = torch.cat(target, dim=0)
+        predicted_ae = torch.cat(predicted_ae, dim=0)
+        loss_scores = torch.cat(loss_scores, dim=0)
+        predicted_discr_with_recinstructed_input = torch.cat(predicted_discr_with_recinstructed_input, dim=0)
+        predicted_discr_with_real_input = torch.cat(predicted_discr_with_real_input, dim=0)
+
+        # RocCurveDisplay.from_predictions(target, loss_scores, name="ROC curve", color="darkorange")
+
+        fpr, tpr, thresholds = metrics.roc_curve(target, loss_scores.ravel(), pos_label=1)
+        roc_auc = metrics.auc(fpr, tpr)
+
+        confusion_matrix_ae = confusion_matrix(target, predicted_ae)
+        confusion_matrix_discr = confusion_matrix(target, predicted_discr_with_recinstructed_input)
+
+        recall_ae = recall_score(target, predicted_ae)
+        precision_ae = precision_score(target, predicted_ae)
+        f1_ae = f1_score(target, predicted_ae)
+
+        recall_discr_with_constructed_input = recall_score(target, predicted_discr_with_recinstructed_input)
+        precision_discr_with_constructed_input = precision_score(target, predicted_discr_with_recinstructed_input)
+        f1_discr_with_constructed_input = f1_score(target, predicted_discr_with_recinstructed_input)
+
+        recall_discr = recall_score(target, predicted_discr_with_real_input)
+        precision_discr = precision_score(target, predicted_discr_with_real_input)
+        f1_discr = f1_score(target, predicted_discr_with_real_input)
 
         return accuracy, loss
 
@@ -122,58 +201,16 @@ class GANExperiment:
 
         return max(list_f1_th, key=lambda x: x[0])[1]
 
-    def evaluate(self, loader):
+    def find_thr(self, fpr, tpr, thr):
 
-        # The threshold is saved in the self.opt['threshold'] variable
-        self.model.eval()
+        GOAT = (0, 1)
+        distance = list()
 
-        accuracy = 0
-        loss = 0
+        for pair in zip(tpr, fpr):
+            distance.append(math.sqrt((pair[0] - GOAT[0]) ** 2 + (pair[1] - GOAT[1]) ** 2))
 
-        predicted_ae = list()
-        target = list()
-        loss_scores = list()
-        predicted_discr = list()
+        print(distance)
+        print(min(distance, key=lambda x: x))
+        print(distance.index(min(distance, key=lambda x: x)))
 
-        with torch.no_grad():
-            for x, y in loader:
-                # remember using to(self.device) method for both input and output
-
-                x = x.to(self.device)
-                y = y.to(self.device)
-
-                logits, discriminator_y = self.model(x)
-
-                loss = torch.mean(self.criterion(x, logits), dim=2)
-
-                predicted_y = loss > self.opt['threshold'].type(torch.int32).ravel()
-
-                loss_scores.append(loss.ravel())
-                predicted_ae.append(predicted_y)
-                predicted_discr.append(discriminator_y.ravel())
-                target.append(y)
-
-                # pred = [...]
-                # accuracy += (pred == y).sum().item()
-
-        self.model.train()
-
-        target = torch.cat(target, dim=0)
-        predicted_ae = torch.cat(predicted_ae, dim=0)
-        loss_scores = torch.cat(loss_scores, dim=0)
-        predicted_discr = torch.cat(predicted_discr, dim=0)
-
-        RocCurveDisplay.from_predictions(target, loss_scores, name="ROC curve", color="darkorange")
-
-        confusion_matrix_ae = confusion_matrix(target, predicted_ae)
-        confusion_matrix_discr = confusion_matrix(target, predicted_discr)
-
-        recall_ae = recall_score(target, predicted_ae)
-        precision_ae = precision_score(target, predicted_ae)
-        f1_ae = f1_score(target, predicted_ae)
-
-        recall_discr = recall_score(target, predicted_discr)
-        precision_discr = precision_score(target, predicted_discr)
-        f1_discr = f1_score(target, predicted_discr)
-
-        return accuracy, loss
+        return thr[distance.index(min(distance, key=lambda x: x))]
