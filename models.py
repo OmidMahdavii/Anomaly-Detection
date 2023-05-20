@@ -111,6 +111,7 @@ class GAN(nn.Module):
     
     def forward(self, x):
         # return both autoencoder and discriminator outputs
-        x = self.autoencoder(x)
-        y = self.discriminator(x)
-        return x,y
+        y = self.autoencoder(x)
+        l0 = self.discriminator(y)
+        l1 = self.discriminator(x)
+        return y, l0, l1
