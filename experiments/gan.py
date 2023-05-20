@@ -19,11 +19,10 @@ class GANExperiment:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
         self.criterion = [...]
 
-    def save_checkpoint(self, path, iteration, train_loss):
+    def save_checkpoint(self, path, iteration):
         checkpoint = {}
 
         checkpoint['iteration'] = iteration
-        checkpoint['train_loss'] = train_loss
         checkpoint['model'] = self.model.state_dict()
         checkpoint['optimizer'] = self.optimizer.state_dict()
 
@@ -33,24 +32,20 @@ class GANExperiment:
         checkpoint = torch.load(path)
 
         iteration = checkpoint['iteration']
-        train_loss = checkpoint['train_loss']
         self.model.load_state_dict(checkpoint['model'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
 
-        return iteration, train_loss
+        return iteration
 
     def train_iteration(self, data):
-        # The regularization weight is saved in the self.opt['reg_weight'] variable
-        # remember using to(self.device) method for input
+        x, _ = data
+        target = torch.zeros((x.shape[0])).to(self.device)
+        x = x.to(self.device)
 
-
-        
-
-
-
-
-        logits = [...]
-        loss = [...]
+        logits, l = self.model(x)
+        loss1 = self.criterion(logits, x)
+        loss2 = self.criterion(l, target)
+        loss = loss1 + self.opt['reg_weight'] * loss2
 
         self.optimizer.zero_grad()
         loss.backward()
