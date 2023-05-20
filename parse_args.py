@@ -9,6 +9,7 @@ def parse_arguments():
     parser.add_argument('--max_iterations', type=int, default=5000, help='Number of training iterations.')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--print_every', type=int, default=50)
+    parser.add_argument('--validate_every', type=int, default=100)
     parser.add_argument('--output_path', type=str, default='.', help='Where to create the output directory containing logs and weights.')
     parser.add_argument('--cpu', action='store_true', help='If set, the experiment will run on the CPU.')
     parser.add_argument('--test', action='store_true', help='If set, the experiment will skip training.')

@@ -1,59 +1,101 @@
-
+import numpy as np
+import torch
 from torch.utils.data import Dataset, DataLoader
-import torchvision.transforms as T
+import matplotlib.pyplot as plt
+
+
+class SensorReadings(Dataset):
+    def __init__(self, examples):
+        self.examples = examples
+
+    def __len__(self):
+        return len(self.examples)
+    
+    def __getitem__(self, index):
+        x, y = self.examples[index]
+        return torch.Tensor(x), torch.Tensor(y)
+
+
+def normalize(data, min, max):
+    return 2*(data - min) / (max - min) -1
+
+
+def plot(data, length):
+    x_axis = np.arange(length)
+    y_axis = data[:length, :]
+    plt.figure(figsize=(8, 4))
+    plt.plot(x_axis, y_axis[:, 0])
+    plt.plot(x_axis, y_axis[:, 1])
+    plt.plot(x_axis, y_axis[:, 2])
+    plt.plot(x_axis, y_axis[:, 3])
+    plt.plot(x_axis, y_axis[:, 4])
+    plt.plot(x_axis, y_axis[:, 5])
+    plt.plot(x_axis, y_axis[:, 6])
+    plt.plot(x_axis, y_axis[:, 7])
+    plt.draw()
+
+
+def windowing(data, window_size, overlapping=True):
+    # Stride is equal to the window size if the windows don't overlap
+    stride = (window_size // 5) if overlapping else window_size
+    output = [data[i:i+window_size, :] for i in range(0, data.shape[0]-window_size+1, stride)]
+    if data.shape[0] % stride != 0:
+        # Add a complete window from the end
+        output.append(data[-window_size:, :])
+    return np.array(output)
+
 
 def build_splits(opt):
-    source_domain = 'art_painting'
-    target_domain = opt['target_domain']
+    normal_data = np.load('data/KukaNormal.npy')
+    slow_data = np.load('data/KukaSlow.npy')[:, :-1] # The last column is anomaly label. It is not needed
 
-    source_examples = read_lines(opt['data_path'], source_domain)
-    target_examples = read_lines(opt['data_path'], target_domain)
+    # Normalize data for each sensor reading in [-1, 1]
+    # Max and min are computed only for the training data
+    train_max = np.max(normal_data, axis=0) + 1e-6 # add a small constant to avoid divide by 0 when max=min
+    train_min = np.min(normal_data, axis=0)
+    normal_data_normalized = normalize(normal_data, train_min, train_max)
+    slow_data_normalized = normalize(slow_data, train_min, train_max)
 
-    # Compute ratios of examples for each category
-    source_category_ratios = {category_idx: len(examples_list) for category_idx, examples_list in source_examples.items()}
-    source_total_examples = sum(source_category_ratios.values())
-    source_category_ratios = {category_idx: c / source_total_examples for category_idx, c in source_category_ratios.items()}
+    # plot(normal_data_normalized[:, :8], opt['window_size'])
+    # plot(slow_data_normalized[:, :8], opt['window_size'])
+    # plt.show()
+    # exit()
 
-    # Build splits - we train only on the source domain (Art Painting)
-    val_split_length = source_total_examples * 0.2 # 20% of the training split used for validation
+    normal_data_window = windowing(normal_data_normalized, opt['window_size'], overlapping=True)
+    # Test data windows don't have overlap
+    slow_data_window = windowing(slow_data_normalized, opt['window_size'], overlapping=False)
+
+    # 10% of the normal data used for validation and the rest used for training
+    normal_split_index = normal_data_window.shape[0] // 10
+
+    # 10% of the slow data used for validation and the rest used for test
+    slow_split_index = slow_data_window.shape[0] // 10
+
+    # Shuffle the data before splitting
+    np.random.shuffle(normal_data_window)
+    np.random.shuffle(slow_data_window)
 
     train_examples = []
     val_examples = []
     test_examples = []
 
-    for category_idx, examples_list in source_examples.items():
-        split_idx = round(source_category_ratios[category_idx] * val_split_length)
-        for i, example in enumerate(examples_list):
-            if i > split_idx:
-                train_examples.append([example, category_idx]) # each pair is [path_to_img, class_label]
-            else:
-                val_examples.append([example, category_idx]) # each pair is [path_to_img, class_label]
+    # Normal data is labeled with 0
+    for idx, example in enumerate(normal_data_window):
+        if idx <= normal_split_index:
+            val_examples.append((example, 0))
+        else:
+            train_examples.append((example, 0))
+
+    # Abnormal data is labeled with 1
+    for idx, example in enumerate(slow_data_window):
+        if idx <= slow_split_index:
+            val_examples.append((example, 1))
+        else:
+            test_examples.append((example, 1))
+
+    # DataLoaders
+    train_loader = DataLoader(SensorReadings(train_examples), batch_size=opt['batch_size'], shuffle=True)
+    val_loader = DataLoader(SensorReadings(val_examples), batch_size=opt['batch_size'], shuffle=False)
+    test_loader = DataLoader(SensorReadings(test_examples), batch_size=opt['batch_size'], shuffle=False)
     
-    for category_idx, examples_list in target_examples.items():
-        for example in examples_list:
-            test_examples.append([example, category_idx]) # each pair is [path_to_img, class_label]
-    
-    # Transforms
-    normalize = T.Normalize([0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) # ResNet18 - ImageNet Normalization
-
-    train_transform = T.Compose([
-        T.Resize(256),
-        T.RandAugment(3, 15),
-        T.CenterCrop(224),
-        T.ToTensor(),
-        normalize
-    ])
-
-    eval_transform = T.Compose([
-        T.Resize(256),
-        T.CenterCrop(224),
-        T.ToTensor(),
-        normalize
-    ])
-
-    # Dataloaders
-    train_loader = DataLoader(PACSDatasetBaseline(train_examples, train_transform), batch_size=opt['batch_size'], num_workers=opt['num_workers'], shuffle=True)
-    val_loader = DataLoader(PACSDatasetBaseline(val_examples, eval_transform), batch_size=opt['batch_size'], num_workers=opt['num_workers'], shuffle=False)
-    test_loader = DataLoader(PACSDatasetBaseline(test_examples, eval_transform), batch_size=opt['batch_size'], num_workers=opt['num_workers'], shuffle=False)
-
     return train_loader, val_loader, test_loader
