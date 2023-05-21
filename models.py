@@ -108,14 +108,4 @@ class GAN(nn.Module):
         super(Autoencoder, self).__init__()
         self.autoencoder = Autoencoder(window_size, latent_size)
         self.discriminator = Discriminator(window_size, latent_size)
-<<<<<<< HEAD
     
-=======
-    
-    def forward(self, x):
-        # return both autoencoder and discriminator outputs
-        y = self.autoencoder(x)
-        l0 = self.discriminator(y)
-        l1 = self.discriminator(x)
-        return y, l0, l1
->>>>>>> 3420b54d24ff50d8c844a4318f83dbef3c36fd54

@@ -3,7 +3,6 @@ from models import Autoencoder
 from sklearn import metrics
 from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix
 
-from parse_args import parse_arguments
 
 class AutoencoderExperiment: 
     
@@ -21,8 +20,9 @@ class AutoencoderExperiment:
 
         # Setup optimization procedure
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
-        # loss function of autoencoder
-        self.criterion = torch.nn.L1Loss(reduction="none")
+        
+        self.train_loss = torch.nn.L1Loss(reduction='sum')
+        self.test_loss = torch.nn.L1Loss(reduction="none")
 
     def save_checkpoint(self, path, iteration):
         checkpoint = {}
@@ -47,7 +47,7 @@ class AutoencoderExperiment:
         x = x.to(self.device)
 
         logits = self.model(x)
-        loss = self.criterion(logits, x)
+        loss = self.train_loss(logits, x)
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -56,7 +56,21 @@ class AutoencoderExperiment:
         return loss.item()
 
     def validate(self, loader):
-        # The threshold is saved in the self.opt['threshold'] variable
+        # notes:
+        # - input parameter to be added: threshold with the default value equal to None. 
+        # - look at these links:
+        #   https://scikit-learn.org/stable/modules/generated/sklearn.metrics.PrecisionRecallDisplay.html#sklearn.metrics.PrecisionRecallDisplay.from_predictions
+        #   https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html#sklearn.metrics.average_precision_score
+        #   https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html#sklearn.metrics.precision_recall_curve
+        # - return variables: if threshold==None -> (AP, optimal threshold)
+        #                     else -> F1 score
+        # - plot the precision recall curve (commented)
+        # - use self.test_loss as loss function
+        # - I don't think it makes any change but for the loss function the first parameter should be the output and the second
+        #   parameter should be the expected output (opposite to what you did)
+        # - label anomaly as 1 and normal data as 0 (opposite to what you did)
+        # - move self.model.train() to the end (before return)
+
         self.model.eval()
 
         accuracy = 0
@@ -104,6 +118,11 @@ class AutoencoderExperiment:
         return accuracy, f1
 
     def evaluate(self, loader):
+        # notes:
+        # - input parameter to be added: threshold
+        # - return variable: recall
+        # - use self.test_loss as loss function
+
         self.model.eval()
         accuracy = 0
         predicted = list()

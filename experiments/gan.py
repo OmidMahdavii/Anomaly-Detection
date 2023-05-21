@@ -19,8 +19,10 @@ class GANExperiment:
 
         # Setup optimization procedure
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
-        # loss function of GAN
-        self.criterion = self.model.BCEWithLogitsLoss()
+        
+        self.generator_loss = torch.nn.L1Loss(reduction='sum')
+        self.discriminator_loss = torch.nn.BCELoss(reduction='sum')
+        self.test_loss = torch.nn.L1Loss(reduction="none")
 
     def save_checkpoint(self, path, iteration):
         checkpoint = {}
@@ -42,22 +44,42 @@ class GANExperiment:
 
     def train_iteration(self, data):
         x, _ = data
-        target = torch.zeros((x.shape[0])).to(self.device)
         x = x.to(self.device)
 
-        logits, l = self.model(x)
-        loss1 = self.criterion(logits, x)
-        loss2 = self.criterion(l, target)
-        loss = loss1 + self.opt['reg_weight'] * loss2
+        logits = self.model.autoencoder(x)
+        disc_out1 = self.model.discriminator(x)
+        disc_out2 = self.model.discriminator(logits)
 
+        # Freeze generator weights
+        for param in self.model.autoencoder.parameters():
+            param.requires_grad = False
+        for param in self.model.discriminator.parameters():
+            param.requires_grad = True
+        # Update discriminator weights
+        disc_loss1 = self.discriminator_loss(disc_out1, torch.zeros((disc_out1.shape)).to(self.device)) # discriminator output should be 0
+        disc_loss2 = self.discriminator_loss(disc_out2, torch.ones((disc_out2.shape)).to(self.device)) # discriminator output should be 1
+        disc_loss = disc_loss1 + disc_loss2
+
+        self.optimizer.zero_grad()
+        disc_loss.backward()
+        self.optimizer.step()
+
+        # Freeze discriminator weights
+        for param in self.model.autoencoder.parameters():
+            param.requires_grad = True
+        for param in self.model.discriminator.parameters():
+            param.requires_grad = False
+        # Update generator weights
+        gen_loss = self.generator_loss(logits, x)
+        loss = gen_loss + self.opt['reg_weight'] * torch.sum(disc_loss)
+        
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
         
         return loss.item()
 
-    def validate(self, loader):
-        # The threshold is saved in the self.opt['threshold'] variable
+    def validate(self, loader): 
         self.model.eval()
 
         accuracy = 0
@@ -126,8 +148,6 @@ class GANExperiment:
         return accuracy, loss
 
     def evaluate(self, loader):
-
-        # The threshold is saved in the self.opt['threshold'] variable
         self.model.eval()
 
         accuracy = 0
