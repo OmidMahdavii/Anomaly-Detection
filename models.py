@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import numpy as np
+
 
 
 class Encoder(nn.Module):
@@ -9,26 +9,27 @@ class Encoder(nn.Module):
         # self.window_size = window_size
         self.latent_size = latent_size
 
-        self.encoder = nn.Sequential(
-            nn.Conv2d(86,32,3),
-            nn.BatchNorm1d(32),
-            nn.ReLU(),
-
-            nn.Conv2d(32,16,3),
-            nn.BatchNorm1d(16),
-            nn.ReLU(),
-
-            nn.Conv2d(16,8,3),
-            nn.BatchNorm1d(8),
-            nn.ReLU()
-            
-        )
-
-    
     
     def forward(self, x):
         # input shape: (window_size, 86), output shape: (latent_size, )
-        x = self.encoder(x)
+        x = nn.Sequential(
+            nn.Conv1d(86,52,3),
+            nn.BatchNorm1d(32),
+            nn.ReLU(),
+
+            nn.Conv1d(52,32,3),
+            nn.BatchNorm1d(32),
+            nn.ReLU(),
+
+            nn.Conv1d(32,16,3),
+            nn.BatchNorm1d(16),
+            nn.ReLU(),
+
+            nn.Conv1d(16,self.latent_size,3),
+            nn.BatchNorm1d(self.latent_size),
+            nn.ReLU()
+            
+        )
         return x
 
 
@@ -37,26 +38,26 @@ class Decoder(nn.Module):
         super(Decoder, self).__init__()
         self.window_size = window_size
         self.latent_size = latent_size
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(8,16,3),
-            nn.BatchNorm1d(16),
-            nn.ReLU(),
 
-            nn.ConvTranspose2d(16, 32,3),
-            nn.BatchNorm1d(32),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(32, 42, 3),
-            nn.BatchNorm1d(42),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(42,86,3),
-            nn.Tanh(),
-        )
     
     def forward(self, x):
         # input shape: (latent_size, ), output shape: (window_size, 86)
-        x = self.decoder(x)
+        x  = nn.Sequential(
+            nn.ConvTranspose1d(self.latent_size,16,3),
+            nn.BatchNorm1d(16),
+            nn.ReLU(),
+
+            nn.ConvTranspose1d(16, 32,3),
+            nn.BatchNorm1d(32),
+            nn.ReLU(),
+
+            nn.ConvTranspose1d(32, 42, 3),
+            nn.BatchNorm1d(42),
+            nn.ReLU(),
+
+            nn.ConvTranspose1d(42,86,3),
+            nn.Tanh(),
+        )
         return x
 
 
@@ -65,29 +66,28 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.window_size = window_size
         self.latent_size = latent_size
-        self.discriminator = nn.Sequential(
-            nn.Conv2d(86,32,3),
-            nn.BatchNorm1d(32),
-            nn.LeakyReLU(),
 
-            nn.Conv2d(32,16,3),
-            nn.BatchNorm1d(16),
-            nn.LeakyReLU(),
-
-            nn.Conv2d(16,8,3),
-            nn.BatchNorm1d(8),
-            nn.LeakyReLU(),
-
-            nn.Conv2d(8,2,3),
-            nn.BatchNorm1d(2),
-            nn.LeakyReLU()
-            
-        )
 
     
     def forward(self, x):
         # input shape: (window_size, 86), output shape: (2, )
-        x = self.discriminator(x)
+        x = nn.Sequential(
+            nn.Conv1d(86,32,3),
+            nn.BatchNorm1d(32),
+            nn.LeakyReLU(),
+
+            nn.Conv1d(32,16,3),
+            nn.BatchNorm1d(16),
+            nn.LeakyReLU(),
+
+            nn.Conv1d(16,8,3),
+            nn.BatchNorm1d(8),
+            nn.LeakyReLU(),
+
+            nn.Conv1d(8,2,3),
+            nn.BatchNorm1d(2),
+            nn.LeakyReLU()
+            )
         return x
 
 
@@ -108,6 +108,9 @@ class GAN(nn.Module):
         super(Autoencoder, self).__init__()
         self.autoencoder = Autoencoder(window_size, latent_size)
         self.discriminator = Discriminator(window_size, latent_size)
+<<<<<<< HEAD
+    
+=======
     
     def forward(self, x):
         # return both autoencoder and discriminator outputs
@@ -115,3 +118,4 @@ class GAN(nn.Module):
         l0 = self.discriminator(y)
         l1 = self.discriminator(x)
         return y, l0, l1
+>>>>>>> 3420b54d24ff50d8c844a4318f83dbef3c36fd54
