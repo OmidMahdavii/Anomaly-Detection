@@ -9,7 +9,7 @@ def parse_arguments():
     parser.add_argument('--max_iterations', type=int, default=5000, help='Number of training iterations.')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--window_size', type=int, default=50)
-    parser.add_argument('--latent_size', type=int, default=8)
+    parser.add_argument('--latent_size', type=int, default=20)
     parser.add_argument('--reg_weight', type=float, default=1.0, help='Loss regularization weight.')
     parser.add_argument('--threshold', type=float, default=0.5, help='Anomaly score threshold.')
     parser.add_argument('--print_every', type=int, default=50)

@@ -82,16 +82,16 @@ def build_splits(opt):
     # Normal data is labeled with 0
     for idx, example in enumerate(normal_data_window):
         if idx <= normal_split_index:
-            val_examples.append((example, 0))
+            val_examples.append((example, [0]))
         else:
-            train_examples.append((example, 0))
+            train_examples.append((example, [0]))
 
     # Abnormal data is labeled with 1
     for idx, example in enumerate(slow_data_window):
         if idx <= slow_split_index:
-            val_examples.append((example, 1))
+            val_examples.append((example, [1]))
         else:
-            test_examples.append((example, 1))
+            test_examples.append((example, [1]))
 
     # DataLoaders
     train_loader = DataLoader(SensorReadings(train_examples), batch_size=opt['batch_size'], shuffle=True)

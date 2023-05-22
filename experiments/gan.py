@@ -14,14 +14,13 @@ class GANExperiment:
         self.model = GAN(opt['window_size'], opt['latent_size'])
         self.model.train()
         self.model.to(self.device)
-        for param in self.model.parameters():
-            param.requires_grad = True
 
         # Setup optimization procedure
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
+        self.gen_optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
+        self.disc_optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
         
-        self.generator_loss = torch.nn.L1Loss(reduction='sum')
-        self.discriminator_loss = torch.nn.BCELoss(reduction='sum')
+        self.generator_loss = torch.nn.L1Loss()
+        self.discriminator_loss = torch.nn.BCEWithLogitsLoss()
         self.test_loss = torch.nn.L1Loss(reduction="none")
 
     def save_checkpoint(self, path, iteration):
@@ -45,37 +44,47 @@ class GANExperiment:
     def train_iteration(self, data):
         x, _ = data
         x = x.to(self.device)
-
-        logits = self.model.autoencoder(x)
-        disc_out1 = self.model.discriminator(x)
-        disc_out2 = self.model.discriminator(logits)
-
         # Freeze generator weights
         for param in self.model.autoencoder.parameters():
             param.requires_grad = False
         for param in self.model.discriminator.parameters():
             param.requires_grad = True
+        # Autoencoder output
+        logits = self.model.autoencoder(x)
+        # Discriminator outputs
+        real_pred = self.model.discriminator(x) # discriminator output for real input
+        fake_pred = self.model.discriminator(logits) # discriminator output for fake input
         # Update discriminator weights
-        disc_loss1 = self.discriminator_loss(disc_out1, torch.zeros((disc_out1.shape)).to(self.device)) # discriminator output should be 0
-        disc_loss2 = self.discriminator_loss(disc_out2, torch.ones((disc_out2.shape)).to(self.device)) # discriminator output should be 1
-        disc_loss = disc_loss1 + disc_loss2
+        disc_loss1 = self.discriminator_loss(real_pred, torch.zeros((real_pred.shape)).to(self.device))
+        disc_loss2 = self.discriminator_loss(fake_pred, torch.ones((fake_pred.shape)).to(self.device))
+        disc_loss = (disc_loss1 + disc_loss2) / 2
 
-        self.optimizer.zero_grad()
+        self.disc_optimizer.zero_grad()
         disc_loss.backward()
-        self.optimizer.step()
+        self.disc_optimizer.step()
 
         # Freeze discriminator weights
         for param in self.model.autoencoder.parameters():
             param.requires_grad = True
         for param in self.model.discriminator.parameters():
             param.requires_grad = False
+        # Autoencoder output
+        logits = self.model.autoencoder(x)
+        # New discriminator outputs
+        real_pred = self.model.discriminator(x) # discriminator output for real input
+        fake_pred = self.model.discriminator(logits) # discriminator output for fake input
         # Update generator weights
         gen_loss = self.generator_loss(logits, x)
-        loss = gen_loss + self.opt['reg_weight'] * torch.sum(disc_loss)
+
+        disc_loss1 = self.discriminator_loss(real_pred, torch.zeros((real_pred.shape)).to(self.device))
+        disc_loss2 = self.discriminator_loss(fake_pred, torch.ones((fake_pred.shape)).to(self.device))
+        disc_loss = (disc_loss1 + disc_loss2) / 2
+
+        loss = gen_loss + self.opt['reg_weight'] * disc_loss
         
-        self.optimizer.zero_grad()
+        self.gen_optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        self.gen_optimizer.step()
         
         return loss.item()
 

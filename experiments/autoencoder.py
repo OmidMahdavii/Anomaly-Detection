@@ -21,7 +21,7 @@ class AutoencoderExperiment:
         # Setup optimization procedure
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
         
-        self.train_loss = torch.nn.L1Loss(reduction='sum')
+        self.train_loss = torch.nn.L1Loss()
         self.test_loss = torch.nn.L1Loss(reduction="none")
 
     def save_checkpoint(self, path, iteration):
