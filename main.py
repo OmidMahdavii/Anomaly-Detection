@@ -38,8 +38,6 @@ def main(opt):
                 count += data[0].shape[0]
 
             tot_loss = train_loss/count
-            print(tot_loss)
-            exit()
             
             if iteration % opt['print_every'] == 0:
                 logging.info(f'[TRAIN - {iteration}] Loss: {tot_loss}')
