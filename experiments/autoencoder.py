@@ -72,9 +72,6 @@ class AutoencoderExperiment:
         # - done - move self.model.train() to the end (before return)
 
         self.model.eval()
-
-        # if threshold is not None:
-        #     predicted = list()
         target = list()
         loss_scores = list()
 
@@ -85,8 +82,8 @@ class AutoencoderExperiment:
 
                 logits = self.model(x)
                 # loss = torch.mean(self.test_loss(logits, x), dim=2)
-                # loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
-                loss = self.test_loss(logits, x).mean(2).view(target.shape[0], -1)
+                loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
+                # loss = self.test_loss(logits, x).mean(2).view(target.shape[0], -1)
                 loss_scores.append(loss)
                 # target.append(y.ravel())
                 target.append(y)
@@ -101,7 +98,6 @@ class AutoencoderExperiment:
         # plt.show()
 
         self.model.train()
-
         if threshold is None:
             f1 = 2 * (precision * recall) / (precision + recall)
             # average_precision = average_precision_score(target_labels, loss_scores.ravel())
@@ -109,57 +105,31 @@ class AutoencoderExperiment:
             optimal_threshold = thresholds[numpy.where( f1 == max(f1, key=lambda x:x) )]
             return ap, optimal_threshold
         else:
-            predicted = (loss_scores.numpy() >= optimal_threshold)
+            predicted = (loss_scores.numpy() >= threshold)
             return f1_score(target_labels, predicted)
 
 
     def evaluate(self, loader, threshold):
-        # notes:
-        # - done - input parameter to be added: threshold
-        # - done -return variable: recall
-        # - done - use self.test_loss as loss function
-
         self.model.eval()
-
-        predicted = list()
         target = list()
-        loss_scores = list()
+        # loss_scores = list()
+        predicted = list()
 
         with torch.no_grad():
             for x, y in loader:
-                # remember using to(self.device) method for both input and output
                 x = x.to(self.device)
                 y = y.to(self.device)
 
                 logits = self.model(x)
+                # loss = torch.mean(self.test_loss(logits, x), dim=2)
+                loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
+                predicted.append(loss.numpy() >= threshold)
+                # loss = self.test_loss(logits, x).mean(2).view(target.shape[0], -1)
+                # loss_scores.append(loss)
+                # target.append(y.ravel())
+                target.append(y)
 
-                loss = torch.mean(self.test_loss(logits, x), dim=2)
-                predicted_y = (loss > threshold ).type(torch.int32).ravel()
-
-                loss_scores.append(loss.ravel())
-                predicted.append(predicted_y)
-                target.append(y.ravel())
-
-        target_labels = torch.cat(target, dim=0)
-        predicted = torch.cat(predicted, dim=0)
-        # loss_scores = torch.cat(loss_scores, dim=0)
-
-        # dict_lebel_score[0] = loss_scores [loss_scores >= self.opt['threshold']]
-        # dict_lebel_score[1] = loss_scores [loss_scores < self.opt['threshold']]
-        #
-        # fpr, tpr, thresholds = metrics.roc_curve(target, loss_scores.ravel(), pos_label=1)
-        # roc_auc = metrics.auc(fpr, tpr)
-        #
-        # recall = recall_score(target, predicted)
-        # precision = precision_score(target, predicted)
-        # f1 = f1_score(target, predicted)
-
-        #  New
-        # precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores.ravel())
-        # f1 = 2 * (precision * recall) / (precision + recall)
-        # average_precision = numpy.mean(precision)
-        # optimal_threshold = thresholds[numpy.where(f1 == max(f1, key=lambda x: x))]
-
-        # average_precision = average_precision_score(target_labels, loss_scores.ravel())
+        target_labels = torch.cat(target, dim=0).cpu()
+        predicted = torch.cat(predicted, dim=0).cpu()
         self.model.train()
         return recall_score(target_labels, predicted)
