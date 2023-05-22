@@ -85,26 +85,14 @@ class AutoencoderExperiment:
 
                 logits = self.model(x)
                 # loss = torch.mean(self.test_loss(logits, x), dim=2)
-                loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
-
-                # if threshold is not None:
-                #     predicted_y = (loss > threshold).type(torch.int32).ravel()
-
-                # loss_scores.append(loss.ravel())
+                # loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
+                loss = self.test_loss(logits, x).mean(2).view(target.shape[0], -1)
                 loss_scores.append(loss)
                 # target.append(y.ravel())
                 target.append(y)
-                # if threshold is not None:
-                #     predicted.append(predicted_y)
 
-        # target_labels = torch.cat(target, dim=0)
-        # loss_scores = torch.cat(loss_scores, dim=0)
         target_labels = torch.cat(target, dim=0).cpu()
         loss_scores = torch.cat(loss_scores, dim=0).cpu()
-        # if threshold is not None:
-        #     predicted = torch.cat(predicted, dim=0)
-
-        # precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores.ravel())
         precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores)
         
         # Plot precision-recall curve
@@ -175,29 +163,3 @@ class AutoencoderExperiment:
         # average_precision = average_precision_score(target_labels, loss_scores.ravel())
         self.model.train()
         return recall_score(target_labels, predicted)
-
-
-
-    # def find_optimal_for_f1(self, scores, groundTruth):
-    #     list_f1_th = list()
-    #     thresholds = set(scores)
-    #     for th in thresholds:
-    #         predicted_label = (scores >= th).type(torch.int32).ravel()
-    #         f1 = f1_score(groundTruth, predicted_label)
-    #         list_f1_th.append((f1, th))
-    #
-    #     return max(list_f1_th, key=lambda x: x[0])[1]
-    #
-    # def find_thr(self, fpr, tpr, thr):
-    #
-    #     GOAT = (0, 1)
-    #     distance = list()
-    #
-    #     for pair in zip(tpr, fpr):
-    #         distance.append(math.sqrt((pair[0] - GOAT[0]) ** 2 + (pair[1] - GOAT[1]) ** 2))
-    #
-    #     print(distance)
-    #     print(min(distance, key=lambda x: x))
-    #     print(distance.index(min(distance, key=lambda x: x)))
-    #
-    #     return thr[distance.index(min(distance, key=lambda x: x))]
