@@ -1,7 +1,7 @@
 import numpy
 import torch
 from models import Autoencoder
-from sklearn.metrics import recall_score, f1_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
+from sklearn.metrics import precision_score, recall_score, f1_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 import matplotlib.pyplot as plt
 
 class AutoencoderExperiment: 
@@ -58,21 +58,6 @@ class AutoencoderExperiment:
         return loss.item()
 
     def validate(self, loader, threshold=None):
-        # notes:
-        # - done -input parameter to be added: threshold with the default value equal to None.
-        # - done - look at these links:
-        #   https://scikit-learn.org/stable/modules/generated/sklearn.metrics.PrecisionRecallDisplay.html#sklearn.metrics.PrecisionRecallDisplay.from_predictions
-        #   https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html#sklearn.metrics.average_precision_score
-        #   https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html#sklearn.metrics.precision_recall_curve
-        # - done - return variables: if threshold==None -> (AP, optimal threshold)
-        #                     else -> F1 score
-        # - plot the precision recall curve (commented)
-        # - use self.test_loss as loss function
-        # - I don't think it makes any change but for the loss function the first parameter should be the output and the second
-        #   parameter should be the expected output (opposite to what you did)
-        # - label anomaly as 1 and normal data as 0 (opposite to what you did)
-        # - done - move self.model.train() to the end (before return)
-
         self.model.eval()
         target = list()
         loss_scores = list()
@@ -83,16 +68,14 @@ class AutoencoderExperiment:
                 y = y.to(self.device)
 
                 logits = self.model(x)
-                # loss = torch.mean(self.test_loss(logits, x), dim=2)
                 loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
-                # loss = self.test_loss(logits, x).mean(2).view(target.shape[0], -1)
                 loss_scores.append(loss)
-                # target.append(y.ravel())
                 target.append(y)
 
         target_labels = torch.cat(target, dim=0).cpu()
-        loss_scores = torch.cat(loss_scores, dim=0).cpu()
-        precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores)
+        loss_scores = torch.cat(loss_scores, dim=0).cpu()      
+        
+        # precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores)
         
         # Plot precision-recall curve
         # disp = PrecisionRecallDisplay(precision, recall)
@@ -100,21 +83,55 @@ class AutoencoderExperiment:
         # plt.show()
 
         self.model.train()
+
         if threshold is None:
-            f1 = 2 * (precision * recall) / (precision + recall)
-            # average_precision = average_precision_score(target_labels, loss_scores.ravel())
-            ap = average_precision_score(target_labels, loss_scores)
-            optimal_threshold = thresholds[numpy.where( f1 == max(f1, key=lambda x:x) )]
+            precision = []
+            recall = []
+            thresholds = []
+            ap = 0
+            max_f1 = 0
+            optimal_threshold = 0
+
+            for i in torch.sort(loss_scores, descending=True)[0]:
+                thresholds.append(i)
+                labels = (loss_scores >= i)
+
+                p = precision_score(target_labels, labels)
+                r = recall_score(target_labels, labels)
+                ap += (r - recall[-1])*p if len(recall)!= 0 else r*p
+
+                f = f1_score(target_labels, labels)
+                if f > max_f1:
+                    optimal_threshold = float(i)
+                    max_f1 = f
+                precision.append(p)
+                recall.append(r)  
+
+            # Plot precision-recall curve
+            # disp = PrecisionRecallDisplay(precision, recall)
+            # disp.plot()
+            # plt.show()
+
             return ap, float(optimal_threshold)
         else:
             predicted = (loss_scores >= threshold)
             return f1_score(target_labels, predicted)
 
 
+
+        # if threshold is None:
+        #     f1 = 2 * (precision * recall) / (precision + recall)
+        #     ap = average_precision_score(target_labels, loss_scores)
+        #     optimal_threshold = thresholds[numpy.where( f1 == max(f1, key=lambda x:x) )]
+        #     return ap, float(optimal_threshold)
+        # else:
+        #     predicted = (loss_scores >= threshold)
+        #     return f1_score(target_labels, predicted)
+
+
     def evaluate(self, loader, threshold):
         self.model.eval()
         target = list()
-        # loss_scores = list()
         predicted = list()
 
         with torch.no_grad():
@@ -123,12 +140,8 @@ class AutoencoderExperiment:
                 y = y.to(self.device)
 
                 logits = self.model(x)
-                # loss = torch.mean(self.test_loss(logits, x), dim=2)
                 loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
                 predicted.append(loss >= threshold)
-                # loss = self.test_loss(logits, x).mean(2).view(target.shape[0], -1)
-                # loss_scores.append(loss)
-                # target.append(y.ravel())
                 target.append(y)
 
         target_labels = torch.cat(target, dim=0).cpu()

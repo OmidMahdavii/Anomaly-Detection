@@ -51,7 +51,6 @@ def main(opt):
                         bestAP = ap
                         experiment.save_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth', iteration, bestAP)
 
-            exit()
             iteration += 1  
 
 
