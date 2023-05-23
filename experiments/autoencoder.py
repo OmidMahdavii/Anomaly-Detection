@@ -24,10 +24,11 @@ class AutoencoderExperiment:
         self.train_loss = torch.nn.L1Loss()
         self.test_loss = torch.nn.L1Loss(reduction="none")
 
-    def save_checkpoint(self, path, iteration):
+    def save_checkpoint(self, path, iteration, bestAP):
         checkpoint = {}
 
         checkpoint['iteration'] = iteration
+        checkpoint['bestAP'] = bestAP
         checkpoint['model'] = self.model.state_dict()
         checkpoint['optimizer'] = self.optimizer.state_dict()
 
@@ -37,10 +38,11 @@ class AutoencoderExperiment:
         checkpoint = torch.load(path)
 
         iteration = checkpoint['iteration']
+        bestAP = checkpoint['bestAP']
         self.model.load_state_dict(checkpoint['model'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
 
-        return iteration
+        return iteration, bestAP
 
     def train_iteration(self, data):
         x, _ = data
@@ -103,9 +105,9 @@ class AutoencoderExperiment:
             # average_precision = average_precision_score(target_labels, loss_scores.ravel())
             ap = average_precision_score(target_labels, loss_scores)
             optimal_threshold = thresholds[numpy.where( f1 == max(f1, key=lambda x:x) )]
-            return ap, optimal_threshold
+            return ap, float(optimal_threshold)
         else:
-            predicted = (loss_scores.numpy() >= threshold)
+            predicted = (loss_scores >= threshold)
             return f1_score(target_labels, predicted)
 
 
@@ -123,7 +125,7 @@ class AutoencoderExperiment:
                 logits = self.model(x)
                 # loss = torch.mean(self.test_loss(logits, x), dim=2)
                 loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
-                predicted.append(loss.numpy() >= threshold)
+                predicted.append(loss >= threshold)
                 # loss = self.test_loss(logits, x).mean(2).view(target.shape[0], -1)
                 # loss_scores.append(loss)
                 # target.append(y.ravel())
