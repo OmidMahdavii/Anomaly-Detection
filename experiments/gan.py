@@ -21,7 +21,7 @@ class GANExperiment:
         self.disc_optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
         
         self.generator_loss = torch.nn.L1Loss()
-        self.discriminator_loss = torch.nn.BCEWithLogitsLoss()
+        self.discriminator_loss = torch.nn.BCELoss()
         self.test_loss = torch.nn.L1Loss(reduction="none")
 
     def save_checkpoint(self, path, iteration, bestAP):
@@ -60,8 +60,8 @@ class GANExperiment:
         real_pred = self.model.discriminator(x) # discriminator output for real input
         fake_pred = self.model.discriminator(logits) # discriminator output for fake input
         # Update discriminator weights
-        disc_loss1 = self.discriminator_loss(real_pred, torch.zeros((real_pred.shape)).to(self.device))
-        disc_loss2 = self.discriminator_loss(fake_pred, torch.ones((fake_pred.shape)).to(self.device))
+        disc_loss1 = self.discriminator_loss(real_pred, torch.ones((real_pred.shape)).to(self.device))
+        disc_loss2 = self.discriminator_loss(fake_pred, torch.zeros((fake_pred.shape)).to(self.device))
         disc_loss = (disc_loss1 + disc_loss2) / 2
 
         self.disc_optimizer.zero_grad()
@@ -80,12 +80,8 @@ class GANExperiment:
         fake_pred = self.model.discriminator(logits) # discriminator output for fake input
         # Update generator weights
         gen_loss = self.generator_loss(logits, x)
-
-        disc_loss1 = self.discriminator_loss(real_pred, torch.zeros((real_pred.shape)).to(self.device))
-        disc_loss2 = self.discriminator_loss(fake_pred, torch.ones((fake_pred.shape)).to(self.device))
-        disc_loss = (disc_loss1 + disc_loss2) / 2
-
-        loss = gen_loss + self.opt['reg_weight'] * disc_loss
+        reg_term = self.generator_loss(real_pred, fake_pred)
+        loss = gen_loss + self.opt['reg_weight'] * reg_term
         
         self.gen_optimizer.zero_grad()
         loss.backward()

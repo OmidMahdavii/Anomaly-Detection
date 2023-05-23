@@ -37,7 +37,7 @@ def plot(data, length):
 
 def windowing(data, window_size, overlapping=True):
     # Stride is equal to the window size if the windows don't overlap
-    stride = (window_size // 5) if overlapping else window_size
+    stride = (window_size // 3) if overlapping else window_size
     output = [data[i:i+window_size, :] for i in range(0, data.shape[0]-window_size+1, stride)]
     if data.shape[0] % stride != 0:
         # Add a complete window from the end
