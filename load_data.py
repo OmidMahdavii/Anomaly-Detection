@@ -17,7 +17,7 @@ class SensorReadings(Dataset):
 
 
 def normalize(data, min, max):
-    return 2*(data - min) / (max - min) -1
+    return (data - min) / (max - min)
 
 
 def plot(data, length):
@@ -49,7 +49,7 @@ def build_splits(opt):
     normal_data = np.load('data/KukaNormal.npy')
     slow_data = np.load('data/KukaSlow.npy')[:, :-1] # The last column is anomaly label. It is not needed
 
-    # Normalize data for each sensor reading in [-1, 1]
+    # Normalize data for each sensor reading in [0, 1]
     # Max and min are computed only for the training data
     train_max = np.max(normal_data, axis=0) + 1e-6 # add a small constant to avoid divide by 0 when max=min
     train_min = np.min(normal_data, axis=0)

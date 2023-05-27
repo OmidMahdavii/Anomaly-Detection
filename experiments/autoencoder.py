@@ -21,8 +21,8 @@ class AutoencoderExperiment:
         # Setup optimization procedure
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
         
-        self.train_loss = torch.nn.L1Loss()
-        self.test_loss = torch.nn.L1Loss(reduction="none")
+        self.train_loss = torch.nn.MSELoss()
+        self.test_loss = torch.nn.MSELoss(reduction="none")
 
     def save_checkpoint(self, path, iteration, bestAP):
         checkpoint = {}
@@ -73,14 +73,11 @@ class AutoencoderExperiment:
                 target.append(y)
 
         target_labels = torch.cat(target, dim=0).cpu()
-        loss_scores = torch.cat(loss_scores, dim=0).cpu()      
-        
+        loss_scores = torch.cat(loss_scores, dim=0).cpu()
+
+        loss_scores = (loss_scores - torch.min(loss_scores)) / (torch.max(loss_scores) - torch.min(loss_scores))
+    
         # precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores)
-        
-        # Plot precision-recall curve
-        # disp = PrecisionRecallDisplay(precision, recall)
-        # disp.plot()
-        # plt.show()
 
         self.model.train()
 
