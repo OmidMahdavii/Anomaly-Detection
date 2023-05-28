@@ -77,53 +77,53 @@ class AutoencoderExperiment:
 
         loss_scores = (loss_scores - torch.min(loss_scores)) / (torch.max(loss_scores) - torch.min(loss_scores))
     
-        # precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores)
+        precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores)
+
+        # Plot precision-recall curve
+        # disp = PrecisionRecallDisplay(precision, recall)
+        # disp.plot()
+        # plt.show()
 
         self.model.train()
 
-        if threshold is None:
-            precision = []
-            recall = []
-            thresholds = []
-            ap = 0
-            max_f1 = 0
-            optimal_threshold = 0
-
-            for i in torch.sort(loss_scores, descending=True)[0]:
-                thresholds.append(i)
-                labels = (loss_scores >= i)
-
-                p = precision_score(target_labels, labels)
-                r = recall_score(target_labels, labels)
-                ap += (r - recall[-1])*p if len(recall)!= 0 else r*p
-
-                f = f1_score(target_labels, labels)
-                if f > max_f1:
-                    optimal_threshold = float(i)
-                    max_f1 = f
-                precision.append(p)
-                recall.append(r)  
-
-            # Plot precision-recall curve
-            # disp = PrecisionRecallDisplay(precision, recall)
-            # disp.plot()
-            # plt.show()
-
-            return ap, float(optimal_threshold)
-        else:
-            predicted = (loss_scores >= threshold)
-            return f1_score(target_labels, predicted)
-
-
-
         # if threshold is None:
-        #     f1 = 2 * (precision * recall) / (precision + recall)
-        #     ap = average_precision_score(target_labels, loss_scores)
-        #     optimal_threshold = thresholds[numpy.where( f1 == max(f1, key=lambda x:x) )]
+        #     precision = []
+        #     recall = []
+        #     thresholds = []
+        #     ap = 0
+        #     max_f1 = 0
+        #     optimal_threshold = 0
+
+        #     for i in torch.sort(loss_scores, descending=True)[0]:
+        #         thresholds.append(i)
+        #         labels = (loss_scores >= i)
+
+        #         p = precision_score(target_labels, labels)
+        #         r = recall_score(target_labels, labels)
+        #         ap += (r - recall[-1])*p if len(recall)!= 0 else r*p
+
+        #         f = f1_score(target_labels, labels)
+        #         if f > max_f1:
+        #             optimal_threshold = float(i)
+        #             max_f1 = f
+        #         precision.append(p)
+        #         recall.append(r)  
+
         #     return ap, float(optimal_threshold)
         # else:
         #     predicted = (loss_scores >= threshold)
         #     return f1_score(target_labels, predicted)
+
+
+
+        if threshold is None:
+            f1 = 2 * (precision * recall) / (precision + recall)
+            ap = average_precision_score(target_labels, loss_scores)
+            optimal_threshold = thresholds[numpy.where(f1 == max(f1))]
+            return ap, float(optimal_threshold)
+        else:
+            predicted = (loss_scores >= threshold)
+            return f1_score(target_labels, predicted)
 
 
     def evaluate(self, loader, threshold):

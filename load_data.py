@@ -72,8 +72,9 @@ def build_splits(opt):
     slow_split_index = slow_data_window.shape[0] // 10
 
     # Shuffle the data before splitting
-    # np.random.shuffle(normal_data_window)
-    # np.random.shuffle(slow_data_window)
+    np.random.seed(42)
+    np.random.shuffle(normal_data_window)
+    np.random.shuffle(slow_data_window)
 
     train_examples = []
     val_examples = []

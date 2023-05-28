@@ -19,6 +19,9 @@ def main(opt):
     elif opt['validate']:
         experiment.load_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth')
         f1 = experiment.validate(validation_loader, threshold=opt['threshold'])
+        # f1 = experiment.validate(validation_loader, threshold=None)
+        # print(f1)
+        # exit()
         logging.info(f'[VAL] F1 score: {(100 * f1):.2f} | Threshold: {opt["threshold"]}')
     
     else: # Start training only if '--test' flag is not set
@@ -49,7 +52,7 @@ def main(opt):
                     logging.info(f'[VAL - {iteration}] Average precision: {(100 * ap):.2f} | Optimal threshold: {threshold}')
                     if ap >= bestAP:
                         bestAP = ap
-                        experiment.save_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth', iteration, bestAP)
+                    experiment.save_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth', iteration, bestAP)
 
             iteration += 1  
 
