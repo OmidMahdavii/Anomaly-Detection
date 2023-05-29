@@ -3,7 +3,7 @@ import logging
 from parse_args import parse_arguments
 from load_data import build_splits
 from experiments.autoencoder import AEExperiment
-from experiments.gan import AAEExperiment
+from experiments.aae import AAEExperiment
 
 
 def main(opt):  
