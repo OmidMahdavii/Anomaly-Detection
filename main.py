@@ -52,7 +52,7 @@ def main(opt):
                     logging.info(f'[VAL - {iteration}] Average precision: {(100 * ap):.2f} | Optimal threshold: {threshold}')
                     if ap >= bestAP:
                         bestAP = ap
-                    experiment.save_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth', iteration, bestAP)
+                        experiment.save_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth', iteration, bestAP)
 
             iteration += 1  
 

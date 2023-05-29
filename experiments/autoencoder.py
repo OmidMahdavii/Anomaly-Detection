@@ -75,7 +75,8 @@ class AutoencoderExperiment:
         target_labels = torch.cat(target, dim=0).cpu()
         loss_scores = torch.cat(loss_scores, dim=0).cpu()
 
-        loss_scores = (loss_scores - torch.min(loss_scores)) / (torch.max(loss_scores) - torch.min(loss_scores))
+        # Normalize scores in [0, 1]
+        # loss_scores = (loss_scores - torch.min(loss_scores)) / (torch.max(loss_scores) - torch.min(loss_scores))
     
         precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores)
 
