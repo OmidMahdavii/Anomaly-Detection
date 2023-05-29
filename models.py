@@ -90,9 +90,9 @@ class Autoencoder(nn.Module):
         return x
 
 
-class GAN(nn.Module):
+class AdversarialAutoEncoder(nn.Module):
     def __init__(self, window_size, latent_size):
-        super(GAN, self).__init__()
+        super(AdversarialAutoEncoder, self).__init__()
         self.autoencoder = Autoencoder(window_size, latent_size)
         self.discriminator = Discriminator(window_size, latent_size)
     

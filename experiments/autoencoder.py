@@ -1,10 +1,10 @@
-import numpy
+import numpy as np
 import torch
 from models import Autoencoder
-from sklearn.metrics import precision_score, recall_score, f1_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
+from sklearn.metrics import recall_score, f1_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 import matplotlib.pyplot as plt
 
-class AutoencoderExperiment: 
+class AEExperiment: 
     
     def __init__(self, opt):
         # Utils
@@ -120,7 +120,7 @@ class AutoencoderExperiment:
         if threshold is None:
             f1 = 2 * (precision * recall) / (precision + recall)
             ap = average_precision_score(target_labels, loss_scores)
-            optimal_threshold = thresholds[numpy.where(f1 == max(f1))]
+            optimal_threshold = thresholds[np.where(f1 == max(f1))]
             return ap, float(optimal_threshold)
         else:
             predicted = (loss_scores >= threshold)

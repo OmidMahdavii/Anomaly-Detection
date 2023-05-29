@@ -1,10 +1,10 @@
 import torch
-from models import GAN
-import numpy
+from models import AdversarialAutoEncoder
+import numpy as np
 from sklearn.metrics import recall_score, f1_score, precision_recall_curve, PrecisionRecallDisplay, average_precision_score
 import matplotlib.pyplot as plt
 
-class GANExperiment: 
+class AAEExperiment: 
     
     def __init__(self, opt):
         # Utils
@@ -12,17 +12,17 @@ class GANExperiment:
         self.device = torch.device('cpu' if opt['cpu'] else 'cuda:0')
 
         # Setup model
-        self.model = GAN(opt['window_size'], opt['latent_size'])
+        self.model = AdversarialAutoEncoder(opt['window_size'], opt['latent_size'])
         self.model.train()
         self.model.to(self.device)
 
         # Setup optimization procedure
-        self.gen_optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
-        self.disc_optimizer = torch.optim.Adam(self.model.parameters(), lr=opt['lr'])
+        self.gen_optimizer = torch.optim.Adam(self.model.autoencoder.parameters(), lr=opt['lr'])
+        self.disc_optimizer = torch.optim.Adam(self.model.discriminator.parameters(), lr=opt['lr'])
         
-        self.generator_loss = torch.nn.L1Loss()
+        self.generator_loss = torch.nn.MSELoss()
         self.discriminator_loss = torch.nn.BCELoss()
-        self.test_loss = torch.nn.L1Loss(reduction="none")
+        self.test_loss = torch.nn.MSELoss(reduction="none")
 
     def save_checkpoint(self, path, iteration, bestAP):
         checkpoint = {}
@@ -101,11 +101,8 @@ class GANExperiment:
                 y = y.to(self.device)
 
                 logits = self.model.autoencoder(x)
-                # loss = torch.mean(self.test_loss(logits, x), dim=2)
                 loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
-                # loss = self.test_loss(logits, x).mean(2).view(target.shape[0], -1)
                 loss_scores.append(loss)
-                # target.append(y.ravel())
                 target.append(y)
 
         target_labels = torch.cat(target, dim=0).cpu()
@@ -121,66 +118,14 @@ class GANExperiment:
         if threshold is None:
             f1 = 2 * (precision * recall) / (precision + recall)
             ap = average_precision_score(target_labels, loss_scores)
-            optimal_threshold = thresholds[numpy.where(f1 == max(f1, key=lambda x: x))]
+            optimal_threshold = thresholds[np.where(f1 == max(f1, key=lambda x: x))]
             return ap, float(optimal_threshold)
         else:
             predicted = (loss_scores >= threshold)
             return f1_score(target_labels, predicted)
 
-        # if threshold is not None:
-        #     predicted = list()
-        # target = list()
-        # loss_scores = list()
-        #
-        # with torch.no_grad():
-        #     for x, y in loader:
-        #         # remember using to(self.device) method for both input and output
-        #         x = x.to(self.device)
-        #         y = y.to(self.device)
-        #
-        #         logits = self.model(x)
-        #
-        #         loss = torch.mean(self.test_loss(logits, x), dim=2)
-        #
-        #         if threshold is not None:
-        #             predicted_y = (loss > threshold).type(torch.int32).ravel()
-        #
-        #         loss_scores.append(loss.ravel())
-        #         target.append(y.ravel())
-        #         if threshold is not None:
-        #             predicted.append(predicted_y)
-        #
-        # target_labels = torch.cat(target, dim=0)
-        # loss_scores = torch.cat(loss_scores, dim=0)
-        # if threshold is not None:
-        #     predicted = torch.cat(predicted, dim=0)
-        #
-        # # dict_lebel_score[0] = loss_scores [loss_scores >= self.opt['threshold']]
-        # # dict_lebel_score[1] = loss_scores [loss_scores < self.opt['threshold']]
-        # #
-        # # fpr, tpr, thresholds = metrics.roc_curve(target, loss_scores.ravel(), pos_label=1)
-        # # roc_auc = metrics.auc(fpr, tpr)
-        # #
-        # # recall = recall_score(target, predicted)
-        # # precision = precision_score(target, predicted)
-        # # f1 = f1_score(target, predicted)
-        #
-        # precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores.ravel())
-        # f1 = 2 * (precision * recall) / (precision + recall)
-        # average_precision = numpy.mean(precision)
-        # # average_precision = average_precision_score(target_labels, loss_scores.ravel())
-        # optimal_threshold = thresholds[numpy.where( f1 == max(f1, key=lambda x:x) )]
-        #
-        #
-        # self.model.train()
-        # if threshold is not None:
-        #     return f1_score(target_labels, predicted)
-        # else:
-        #     return average_precision, optimal_threshold
-
 
     def evaluate(self, loader, threshold):
-
         self.model.eval()
         target = list()
         predicted = list()
@@ -191,43 +136,11 @@ class GANExperiment:
                 y = y.to(self.device)
 
                 logits = self.model.autoencoder(x)
-                # loss = torch.mean(self.test_loss(logits, x), dim=2)
                 loss = self.test_loss(logits, x).view(x.shape[0], -1).mean(1)
                 predicted.append(loss >= threshold)
-                # loss = self.test_loss(logits, x).mean(2).view(target.shape[0], -1)
-                # loss_scores.append(loss)
-                # target.append(y.ravel())
                 target.append(y)
 
         target_labels = torch.cat(target, dim=0).cpu()
         predicted = torch.cat(predicted, dim=0).cpu()
         self.model.train()
         return recall_score(target_labels, predicted)
-
-        # self.model.eval()
-        #
-        # predicted = list()
-        # target = list()
-        # loss_scores = list()
-        #
-        # with torch.no_grad():
-        #     for x, y in loader:
-        #         # remember using to(self.device) method for both input and output
-        #         x = x.to(self.device)
-        #         y = y.to(self.device)
-        #
-        #         logits = self.model(x)
-        #
-        #         loss = torch.mean(self.test_loss(logits, x), dim=2)
-        #         predicted_y = (loss > threshold).type(torch.int32).ravel()
-        #
-        #         loss_scores.append(loss.ravel())
-        #         predicted.append(predicted_y)
-        #         target.append(y.ravel())
-        #
-        # target_labels = torch.cat(target, dim=0)
-        # predicted = torch.cat(predicted, dim=0)
-        # # loss_scores = torch.cat(loss_scores, dim=0)
-        # # average_precision = average_precision_score(target_labels, loss_scores.ravel())
-        # self.model.train()
-        # return recall_score(target_labels, predicted)

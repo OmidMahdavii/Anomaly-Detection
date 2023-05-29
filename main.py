@@ -2,12 +2,12 @@ import os
 import logging
 from parse_args import parse_arguments
 from load_data import build_splits
-from experiments.autoencoder import AutoencoderExperiment
-from experiments.gan import GANExperiment
+from experiments.autoencoder import AEExperiment
+from experiments.gan import AAEExperiment
 
 
 def main(opt):  
-    experiment = AutoencoderExperiment(opt) if opt['experiment'] == 'autoencoder' else GANExperiment(opt)
+    experiment = AEExperiment(opt) if opt['experiment'] == 'autoencoder' else AAEExperiment(opt)
     
     train_loader, validation_loader, test_loader = build_splits(opt)
     
