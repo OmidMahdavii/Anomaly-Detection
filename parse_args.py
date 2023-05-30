@@ -11,7 +11,7 @@ def parse_arguments():
     parser.add_argument('--window_size', type=int, default=50)
     parser.add_argument('--latent_size', type=int, default=50)
     parser.add_argument('--reg_weight', type=float, default=1e-3, help='Loss regularization weight.')
-    parser.add_argument('--threshold', type=float, default=0.00129, help='Anomaly score threshold.')
+    parser.add_argument('--threshold', type=float, default=0.00104, help='Anomaly score threshold.')
     parser.add_argument('--print_every', type=int, default=10)
     parser.add_argument('--validate_every', type=int, default=30)
     parser.add_argument('--output_path', type=str, default='.', help='Where to create the output directory containing logs and weights.')

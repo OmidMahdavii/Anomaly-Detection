@@ -120,8 +120,8 @@ class AEExperiment:
         if threshold is None:
             f1 = 2 * (precision * recall) / (precision + recall)
             ap = average_precision_score(target_labels, loss_scores)
-            optimal_threshold = thresholds[np.where(f1 == max(f1))]
-            return ap, float(optimal_threshold)
+            optimal_threshold = thresholds[np.where(f1 == max(f1))][0]
+            return ap, optimal_threshold
         else:
             predicted = (loss_scores >= threshold)
             return f1_score(target_labels, predicted)
