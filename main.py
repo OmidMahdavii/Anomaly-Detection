@@ -16,7 +16,7 @@ def main(opt):
         recall = experiment.evaluate(test_loader, opt['threshold'])
         logging.info(f'[TEST] Recall: {(100 * recall):.2f}')
     
-    elif opt['validate']:
+    elif opt['validate']: # Validation analyzes the model if '--validate' flag is set
         experiment.load_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth')
         f1 = experiment.validate(validation_loader, threshold=opt['threshold'])
         # f1 = experiment.validate(validation_loader, threshold=None)
@@ -24,7 +24,7 @@ def main(opt):
         # exit()
         logging.info(f'[VAL] F1 score: {(100 * f1):.2f} | Threshold: {opt["threshold"]}')
     
-    else: # Start training only if '--test' flag is not set
+    else: # Start training only if '--test' and '--validate' flags are not set
         iteration = 0
         bestAP = 0
         # Restore last checkpoint
