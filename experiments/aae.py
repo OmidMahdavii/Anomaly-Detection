@@ -24,11 +24,12 @@ class AAEExperiment:
         self.discriminator_loss = torch.nn.BCELoss()
         self.test_loss = torch.nn.MSELoss(reduction="none")
 
-    def save_checkpoint(self, path, iteration, bestAP):
+    def save_checkpoint(self, path, iteration, bestAP, threshold):
         checkpoint = {}
 
         checkpoint['iteration'] = iteration
         checkpoint['bestAP'] = bestAP
+        checkpoint['threshold'] = threshold
         checkpoint['model'] = self.model.state_dict()
         checkpoint['gen_optimizer'] = self.gen_optimizer.state_dict()
         checkpoint['disc_optimizer'] = self.disc_optimizer.state_dict()
@@ -40,6 +41,7 @@ class AAEExperiment:
 
         iteration = checkpoint['iteration']
         bestAP = checkpoint['bestAP']
+        self.threshold = checkpoint['threshold']
         self.model.load_state_dict(checkpoint['model'])
         self.gen_optimizer.load_state_dict(checkpoint['gen_optimizer'])
         self.disc_optimizer.load_state_dict(checkpoint['disc_optimizer'])

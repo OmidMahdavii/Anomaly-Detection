@@ -13,16 +13,13 @@ def main(opt):
     
     if opt['test']: # Test the model if '--test' flag is set
         experiment.load_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth')
-        recall = experiment.evaluate(test_loader, opt['threshold'])
+        recall = experiment.evaluate(test_loader, experiment.threshold)
         logging.info(f'[TEST] Recall: {(100 * recall):.2f}')
     
     elif opt['validate']: # Validation analyzes the model if '--validate' flag is set
         experiment.load_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth')
-        f1 = experiment.validate(validation_loader, threshold=opt['threshold'])
-        # f1 = experiment.validate(validation_loader, threshold=None)
-        # print(f1)
-        # exit()
-        logging.info(f'[VAL] F1 score: {(100 * f1):.2f} | Threshold: {opt["threshold"]}')
+        f1 = experiment.validate(validation_loader, threshold=experiment.threshold)
+        logging.info(f'[VAL] F1 score: {(100 * f1):.2f} | Threshold: {experiment.threshold}')
     
     else: # Start training only if '--test' and '--validate' flags are not set
         iteration = 0
@@ -52,7 +49,7 @@ def main(opt):
                     logging.info(f'[VAL - {iteration}] Average precision: {(100 * ap):.2f} | Optimal threshold: {threshold}')
                     if ap >= bestAP:
                         bestAP = ap
-                        experiment.save_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth', iteration, bestAP)
+                        experiment.save_checkpoint(f'{opt["output_path"]}/best_checkpoint.pth', iteration, bestAP, threshold)
 
             iteration += 1  
 

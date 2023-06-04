@@ -24,11 +24,12 @@ class AEExperiment:
         self.train_loss = torch.nn.MSELoss()
         self.test_loss = torch.nn.MSELoss(reduction="none")
 
-    def save_checkpoint(self, path, iteration, bestAP):
+    def save_checkpoint(self, path, iteration, bestAP, threshold):
         checkpoint = {}
 
         checkpoint['iteration'] = iteration
         checkpoint['bestAP'] = bestAP
+        checkpoint['threshold'] = threshold
         checkpoint['model'] = self.model.state_dict()
         checkpoint['optimizer'] = self.optimizer.state_dict()
 
@@ -39,6 +40,7 @@ class AEExperiment:
 
         iteration = checkpoint['iteration']
         bestAP = checkpoint['bestAP']
+        self.threshold = checkpoint['threshold']
         self.model.load_state_dict(checkpoint['model'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
 
