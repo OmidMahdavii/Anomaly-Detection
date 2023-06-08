@@ -121,7 +121,6 @@ class AAEExperiment:
             # Plot precision-recall curve
             # disp = PrecisionRecallDisplay(precision, recall)
             # disp.plot()
-            # plt.plot(recall, precision)
             # plt.show()
 
             f1 = 2 * (precision * recall) / (precision + recall)
