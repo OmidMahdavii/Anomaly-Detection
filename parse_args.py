@@ -4,7 +4,7 @@ import torch
 def parse_arguments():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--experiment', type=str, default='AAE', choices=['AEE', 'autoencoder'])
+    parser.add_argument('--experiment', type=str, default='AAE', choices=['AAE', 'autoencoder'])
     parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate.')
     parser.add_argument('--max_iterations', type=int, default=7000, help='Number of training iterations.')
     parser.add_argument('--batch_size', type=int, default=32)
