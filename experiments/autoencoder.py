@@ -46,6 +46,14 @@ class AEExperiment:
 
         return iteration, bestAP
 
+    def draw_plot(self, precision, recall, ap):
+        # np.save('precision', precision)
+        # np.save('recall', recall)
+        
+        disp = PrecisionRecallDisplay(precision, recall, estimator_name='Autoencoder', average_precision=ap)
+        disp.plot()
+        plt.show()
+    
     def train_iteration(self, data):
         x, _ = data
         x = x.to(self.device)
@@ -85,14 +93,13 @@ class AEExperiment:
         if threshold is None:
             precision, recall, thresholds = precision_recall_curve(target_labels, loss_scores)
 
-            # Plot precision-recall curve
-            # disp = PrecisionRecallDisplay(precision, recall)
-            # disp.plot()
-            # plt.show()
-
             f1 = 2 * (precision * recall) / (precision + recall)
             ap = average_precision_score(target_labels, loss_scores)
             optimal_threshold = thresholds[np.where(f1 == max(f1))][0]
+
+            # Plot precision-recall curve
+            # self.draw_plot(precision, recall, ap)
+
             return ap, optimal_threshold
         else:
             predicted = (loss_scores >= threshold)

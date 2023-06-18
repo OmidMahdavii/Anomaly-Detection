@@ -20,18 +20,16 @@ def normalize(data, min, max):
     return (data - min) / (max - min)
 
 
-def plot(data, length):
-    x_axis = np.arange(length)
-    y_axis = data[:length, :]
-    plt.figure(figsize=(8, 4))
-    plt.plot(x_axis, y_axis[:, 0])
-    plt.plot(x_axis, y_axis[:, 1])
-    plt.plot(x_axis, y_axis[:, 2])
-    plt.plot(x_axis, y_axis[:, 3])
-    plt.plot(x_axis, y_axis[:, 4])
-    plt.plot(x_axis, y_axis[:, 5])
-    plt.plot(x_axis, y_axis[:, 6])
-    plt.plot(x_axis, y_axis[:, 7])
+def window_plot(window):
+    fig, ax = plt.subplots()
+    ax.plot(window[:, 0], color='b', label='Apparent power')
+    ax.plot(window[:, 1], color='r', label='Current')
+    ax.plot(window[:, 2], color='g', label='Frequency')
+    ax.plot(window[:, 3], color='y', label='Phase angle')
+    fig.set_size_inches(5, 4)
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Normalized Value')
+    ax.legend()
     plt.draw()
 
 
@@ -56,11 +54,6 @@ def build_splits(opt):
     normal_data_normalized = normalize(normal_data, train_min, train_max)
     slow_data_normalized = normalize(slow_data, train_min, train_max)
 
-    # plot(normal_data_normalized[:, :8], opt['window_size'])
-    # plot(slow_data_normalized[:, :8], opt['window_size'])
-    # plt.show()
-    # exit()
-
     normal_data_window = windowing(normal_data_normalized, opt['window_size'], overlapping=True)
     # Test data windows don't have overlap
     slow_data_window = windowing(slow_data_normalized, opt['window_size'], overlapping=False)
@@ -70,6 +63,10 @@ def build_splits(opt):
 
     # 10% of the slow data used for validation and the rest used for test
     slow_split_index = slow_data_window.shape[0] // 10
+    
+    # window_plot(normal_data_window[10][:, 1:5])
+    # window_plot(slow_data_window[274][:, 1:5])
+    # plt.show()
 
     # Shuffle the data before splitting
     np.random.seed(42)

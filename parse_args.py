@@ -10,7 +10,7 @@ def parse_arguments():
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--window_size', type=int, default=100)
     parser.add_argument('--latent_size', type=int, default=30)
-    parser.add_argument('--reg_weight', type=float, default=1e-1, help='Loss regularization weight.')
+    parser.add_argument('--reg_weight', type=float, default=1e-2, help='Loss regularization weight.')
     parser.add_argument('--print_every', type=int, default=10)
     parser.add_argument('--validate_every', type=int, default=30)
     parser.add_argument('--output_path', type=str, default='.', help='Where to create the output directory containing logs and weights.')
