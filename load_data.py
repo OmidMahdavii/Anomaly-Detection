@@ -29,6 +29,7 @@ def window_plot(window):
     fig.set_size_inches(5, 4)
     ax.set_xlabel('Time')
     ax.set_ylabel('Normalized Value')
+    ax.set_ylim([0, 1])
     ax.legend()
     plt.draw()
 
